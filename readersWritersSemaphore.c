@@ -3,7 +3,7 @@
 #include <stdio.h>   // Standard I/O commands
 #include <stdint.h>  // Used to suppress a warning when casting from (void*) to int
 #include <stdbool.h> // Used to detect when writers have finished
-#include <semaphore.h> 
+#include <semaphore.h> // Used to implement semaphores
 
 /**
  * Number of times each writer thread executes its critical section
@@ -56,9 +56,10 @@ int buffer[2];
  */
 bool stillWriting = true;
 
-sem_t writerS;
-sem_t readerS;
-int readCount = 0;
+// Initializes writer and reader semaphores
+sem_t writerS; // Semaphore used to control access to writing from the buffer
+sem_t readerS; // Semaphore used to control access to reading from the buffer
+int readCount = 0; // Counter to keep track of the number of active reader threads
 
 /**
  * Each writer thread should execute its critical section WRITE_ACTIONS
@@ -77,16 +78,17 @@ void * writer(void * id) {
 	int i;
 
 	for(i = 0; i < WRITE_ACTIONS; i++) { // Consume a set number of values 
+			// Check if there is a thread still writing
 			if(stillWriting == true){
-				sem_wait(&writerS); // Decrement empty slots count
+				sem_wait(&writerS); // Acquire the writer semaphore to indicate that the writer wants to enter the critical section
 
-				// WRITEUNIT()
-				buffer[0] = threadID;
-				randomDurationPause();
-				buffer[1] = threadID; 
-				randomDurationPause();
+				// WRITEUNIT() - Writing the thread to the buffer
+				buffer[0] = threadID; // Write the id of the thread to the buffer
+				randomDurationPause(); // Simulates write delay
+				buffer[1] = threadID; // write the id of the thread to the buffer
+				randomDurationPause(); // Simulates write delay
 
-				sem_post(&writerS); // Exit critical section
+				sem_post(&writerS); // Release the writer semaphore to indicate that it has exited the critical section
 			}
 	}	
 	printf("W%d finished\n", threadID); 
@@ -109,34 +111,40 @@ void * reader(void * id) {
 	int threadID = (intptr_t) id; // intptr_r used to suppress a casting warning
 	// Announce that the thread has started executing
 	printf("R%d entered\n", threadID); 
-	while(stillWriting){
-		sem_wait(&readerS); // Decrement filled slots count
-		readCount++;
+	// Checks if there are still active writing threads
+	if(stillWriting){
+		sem_wait(&readerS); // Acquire the reader semaphore to indicate that the reader has priority 
+		readCount++; // Increment the number of active readers
+		// If this is the first reader, prevent the writer from accessing the resources
 		if(readCount == 1){
 			sem_wait(&writerS);
 		}
-    	sem_post(&readerS); // Enter critical section 
+    	sem_post(&readerS); 
 
-		// READUNIT()
-		int index1 = buffer[0];
-		randomDurationPause(); 
-		int index2 = buffer[1];
+		// READUNIT() - Reading the values from the buffer
+		int index1 = buffer[0]; // Read the first value from the index buffer
+		randomDurationPause(); // Use a reandom pause to simualte delay
+		int index2 = buffer[1]; // Read the second value from the index buffer
+		// Check for consistency between indexes
 		if(index1 == index2){ 
+			// Prints out consistent index
 			printf("Consistent Buffer of index: %d\n", index1);
 		}
 		else {
+			// If the indexes are not the same, print out inconsistent indexesd
 			printf("Inconsistent Buffer with indexes:\n");
 			printf("Index 1: %d\n", index1);
 			printf("Index 2: %d\n", index2);
 		}
 		randomDurationPause();
-
-		sem_wait(&readerS);
-		readCount--;
+		
+		sem_wait(&readerS); // Acuires the reader seamphore to indicate that the reader wants to enter the critical section
+		readCount--; // Decrement the number of active readers
+		// If there are no more active readers, signal that writers can proceed
 		if(readCount == 0){
-			sem_post(&writerS);
+			sem_post(&writerS); // Signal to writer to indicate that they can proceed
 		}
-		sem_post(&readerS)
+		sem_post(&readerS); // Reader exits the critical section
 	}
 
 	printf("R%d finished\n", threadID); 
@@ -151,8 +159,8 @@ void * reader(void * id) {
 int main() {
 	printf("Readers/Writers Program Launched\n");
 
-	sem_init(&readers, 0, 1);
-	sem_init($writers, 0, 1);
+	sem_init(&readerS, 0, 1); // Initialize reader semaphore with an initial value of 1
+	sem_init(&writerS, 0, 1); // Initialize writer semaphore with an initial value of 1
 	
 	pthread_t readerThread[NUM_READERS], writerThread[NUM_WRITERS];
 	int id;

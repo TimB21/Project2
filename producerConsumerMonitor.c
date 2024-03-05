@@ -2,7 +2,7 @@
 #include <pthread.h> // POSIX Thread Library
 #include <stdio.h>   // Standard I/O commands
 #include <stdint.h>  // Used to suppress a warning when casting from (void*) to int
-#include <semaphore.h> 
+#include <semaphore.h> // Allows for the use of semaphores
 
 /**
  * Number of elements that can be produced
@@ -61,9 +61,9 @@ void randomDurationPause() {
  * be accessed by one thread at a time.
  */
 int globalProductionCounter = 0;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
-pthread_cond_t filled = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t mutex; // Creates a mutex to provide mutual exclusion 
+pthread_cond_t empty; // Conditional variable used to signal an empty buffer
+pthread_cond_t filled; // Conditional variable to signal a full buffer
 
 
 
@@ -160,18 +160,17 @@ void * producer(void * arg) {
 	printf("P%d entered\n", threadID); 
 	int i;
 	for(i = 0; i < PRODUCTION_LIMIT; i++) { // Produce a set number of values
-		pthread_mutex_lock(&mutex); 
-		int position = (insertAt + 1) % BUFFER_SIZE;
-		while (position == removeAt) {
+		pthread_mutex_lock(&mutex); // Producer acquires mutex lock before attempting to enter the critical section
+		// If the next insertion index is the same index as the removeAt index, wait for the mutex to become empty
+		while ((insertAt + 1) % BUFFER_SIZE == removeAt) {
             pthread_cond_wait(&empty, &mutex);
         }
 		// Start Critical Section: produce() must appear here to protect globalProductionCounter
-		int producedResult = produce(threadID); // produce new value 
-		append(producedResult); // add new value to buffer 
+		int producedResult = produce(threadID); // Produce new value 
+		append(producedResult); // Add new value to buffer 
 		pthread_cond_signal(&filled); // Exit critical section
     	pthread_mutex_unlock(&mutex); // Increment filled slots count
 		// End Critical Section
-
 	}
 	// Announce completion of thread 
 	printf("P%d finished\n", threadID); 
@@ -195,17 +194,19 @@ void * consumer(void * arg) {
 	printf("C%d entered\n", threadID); 
 	int i;
 	for(i = 0; i < CONSUMPTION_LIMIT; i++) { // Consume a set number of values
-
-		pthread_mutex_lock(&mutex);
-        while (insertAt == removeAt) {
+		pthread_mutex_lock(&mutex); // Consumer locks mutex before trying to enter critical section
+        // If insertAt and removeAt are the same index, the buffer is full
+		// If the buffer is full and waits for it to become empty
+		while (insertAt == removeAt) {
             pthread_cond_wait(&filled, &mutex);
         }
-		// Start Critical Section
-		int consumedResult = take(); // Take from buffer
-		pthread_cond_signal(&empty);
-        pthread_mutex_unlock(&mutex);
-        consume(threadID, consumedResult);
+		// Start Critical Section 
+		int consumedResult = take(); // Take value to be consumed from the buffer
+		pthread_cond_signal(&empty); // Signal that the buffer is empty
+        pthread_mutex_unlock(&mutex); // Release the mutex to allow for other threads to proceed 
+		
 		// End Critical Section: consume() appears here to assure sequential ordering of output
+        consume(threadID, consumedResult);
 
 	}	
 	// Announce completion of thread 
@@ -224,6 +225,24 @@ int main() {
 
 	pthread_t producerThread[NUM_PRODUCERS], consumerThread[NUM_CONSUMERS];
 	int id;
+	
+	// Initializes the mutex and returns a value of -1 if unable to do so
+	if(pthread_mutex_init(&mutex, NULL)){
+		printf("Unable to initilaize a mutex\n");
+		return -1;
+	}
+
+	// Initializes the conditional to signal a full mutex and returns a value of -1 if unable to do so
+	if(pthread_cond_init(&filled, NULL)){
+		printf("Unable to initilaize a conditional\n");
+		return -1;
+	}
+
+	// Initializes the conditional to signal an empty mutex and returns a value of -1 if unable to do so
+	if(pthread_cond_init(&empty, NULL)){
+		printf("Unable to initilaize a mutex\n");
+		return -1;
+	}
 
 	// Launch producers
 	for(id = 1; id <= NUM_PRODUCERS; id++) {

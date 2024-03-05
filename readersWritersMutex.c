@@ -3,7 +3,6 @@
 #include <stdio.h>   // Standard I/O commands
 #include <stdint.h>  // Used to suppress a warning when casting from (void*) to int
 #include <stdbool.h> // Used to detect when writers have finished
-#include <semaphore.h> 
 
 /**
  * Number of times each writer thread executes its critical section
@@ -56,9 +55,9 @@ int buffer[2];
  */
 bool stillWriting = true;
 
-pthread_mutex_t writerMutex;
-pthread_mutex_t readerMutex;
-int readCount = 0;
+pthread_mutex_t writerMutex; // Mutex to ensure mutual exlusion among writer threads
+pthread_mutex_t readerMutex; // Mutex to ensure mutual exclusion among reader threads
+int readCount = 0; // Counter to keep track of active reader threads
 
 /**
  * Each writer thread should execute its critical section WRITE_ACTIONS
@@ -75,8 +74,7 @@ void * writer(void * id) {
 	// Announce that the thread has started executing
 	printf("W%d entered\n", threadID); 
 	int i;
-
-	for(i = 0; i < WRITE_ACTIONS; i++) { // Consume a set number of values 
+	for(i = 0; i < WRITE_ACTIONS; i++) { 
 			if(stillWriting == true){
 				pthread_mutex_lock(&writerMutex); // Decrement empty slots count
 
@@ -110,34 +108,40 @@ void * reader(void * id) {
 	int threadID = (intptr_t) id; // intptr_r used to suppress a casting warning
 	// Announce that the thread has started executing
 	printf("R%d entered\n", threadID); 
-	while(stillWriting){
-		pthread_mutex_lock(&readerMutex); // Decrement filled slots count
-		readCount++;
+	// If there is an active writer thread
+	if(stillWriting){
+		pthread_mutex_lock(&readerMutex); // Lock the reader mutex to ensure mutual exclusion
+		readCount++; // Increment the active reader thread count
+		// If there is only one active reader, place a lock on the writer mutex to ensure that readers are given priority
 		if(readCount == 1){
 			pthread_mutex_lock(&writerMutex);
 		}
-    	pthread_mutex_unlock(&readerMutex); // Enter critical section 
+    	pthread_mutex_unlock(&readerMutex); /// Release the reader mutex
 
-		// READUNIT()
-		int index1 = buffer[0];
-		randomDurationPause(); 
-		int index2 = buffer[1];
+		// READUNIT() - reads the values from the buffer
+		int index1 = buffer[0]; // Read the value from the first index of the buffer
+		randomDurationPause(); // Simulate a random pause
+		int index2 = buffer[1]; // Read the value from the second index of the buffer
+		// Checks for consistency which occurs when both buffer indexes are equal
 		if(index1 == index2){ 
+			// Prints out the value which is contained by both positions of the buffer
 			printf("Consistent Buffer of index: %d\n", index1);
 		}
 		else {
+			// If the indexes are not the same, print out both values
 			printf("Inconsistent Buffer with indexes:\n");
 			printf("Index 1: %d\n", index1);
 			printf("Index 2: %d\n", index2);
 		}
-		randomDurationPause();
+		randomDurationPause(); // Pause to ensure that processes are interleaved correctly
 
-		pthread_mutex_lock(&readerMutex);
-		readCount--;
-		if(readCount == 0){
+		pthread_mutex_lock(&readerMutex); // Lock the reader mutex before updating the read count
+		readCount--; // Decrement the read count
+		// If there are no reader threads, unlock the writer mutex
+		if(readCount == 0){ 
 			pthread_mutex_unlock(&writerMutex);
 		}
-		pthread_mutex_unlock(&readerMutex);
+		pthread_mutex_unlock(&readerMutex); // Release the reader mutex
 	}
 
 	printf("R%d finished\n", threadID); 
@@ -152,14 +156,17 @@ void * reader(void * id) {
 int main() {
 	printf("Readers/Writers Program Launched\n");
 	
+	// initialize reader mutex and return -1 if unable to do so
 	if(pthread_mutex_init(&readerMutex, NULL)){
 		printf("Unable to initilaize a mutex\n");
 		return -1;
 	}
+	// initialize writer mutex and return -1 if unable to do so
 	if(pthread_mutex_init(&writerMutex, NULL)){
-		printf("Unable to initilaize a mutex\n");
+		printf("Unable to initilaize a conditional\n");
 		return -1;
-	}
+	} 
+
 	pthread_t readerThread[NUM_READERS], writerThread[NUM_WRITERS];
 	int id;
 

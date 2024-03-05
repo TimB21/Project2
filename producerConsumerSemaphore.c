@@ -2,7 +2,7 @@
 #include <pthread.h> // POSIX Thread Library
 #include <stdio.h>   // Standard I/O commands
 #include <stdint.h>  // Used to suppress a warning when casting from (void*) to int
-#include <semaphore.h> 
+#include <semaphore.h> // Allows for the use of semaphores
 
 /**
  * Number of elements that can be produced
@@ -60,9 +60,9 @@ void randomDurationPause() {
  */
 int globalProductionCounter = 0;
 
-sem_t empty;
-sem_t writer;
-sem_t semaphore;
+sem_t empty; // Semaphore used to track the empty slots in the buffer
+sem_t filled; // Semaphore used keep track of the number of filled slots in the buffer
+sem_t semaphore; // Semaphore used to ensure mutual exclusion
 
 /**
  * Because this is just a simple model for understanding
@@ -158,14 +158,13 @@ void * producer(void * arg) {
 	int i;
 	for(i = 0; i < PRODUCTION_LIMIT; i++) { // Produce a set number of values
 		sem_wait(&empty); // Decrement empty slots count
-    	sem_wait(&semaphore); // Enter critical section
+    	sem_wait(&semaphore); // Used to indicate that the producer is enter critical section
 		// Start Critical Section: produce() must appear here to protect globalProductionCounter
-		int producedResult = produce(threadID); // produce new value 
-		append(producedResult); // add new value to buffer 
+		int producedResult = produce(threadID); // Produce new value 
+		append(producedResult); // Add new value to buffer 
 		sem_post(&semaphore); // Exit critical section
     	sem_post(&filled); // Increment filled slots count
 		// End Critical Section
-
 	}
 	// Announce completion of thread 
 	printf("P%d finished\n", threadID); 
@@ -189,13 +188,11 @@ void * consumer(void * arg) {
 	printf("C%d entered\n", threadID); 
 	int i;
 	for(i = 0; i < CONSUMPTION_LIMIT; i++) { // Consume a set number of values
-
-
 		sem_wait(&filled); // Decrement filled slots count
-    	sem_wait(&semaphore); // Enter critical section
+    	sem_wait(&semaphore); // Used to indicate that the consumer is entering critical section
 		// Start Critical Section
 		int consumedResult = take(); // Take from buffer
-		sem_post(&semaphore); // Exit critical section
+		sem_post(&semaphore); // Signifies that the consumer has exited it's critical section
     	sem_post(&empty); // Increment empty slots count
 		consume(threadID, consumedResult); // Consume result 
 		// End Critical Section: consume() appears here to assure sequential ordering of output

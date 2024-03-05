@@ -70,11 +70,12 @@ void * writer(void * id) {
 	// Announce that the thread has started executing
 	printf("W%d entered\n", threadID); 
 	int i;
-	for(i = 0; i < WRITE_ACTIONS; i++) { // Consume a set number of values
-			buffer[0] = threadID;
-			randomDurationPause();
-			buffer[1] = threadID;  
+	for(i = 0; i <= WRITE_ACTIONS; i++) { // Consume a set number of values
+			buffer[0] = threadID; // set the first value of the buffer to the thread id
+			randomDurationPause(); // perform a random duration pause to encourage race condition
+			buffer[1] = threadID;  // set the second value of the buffer to the thread id
 	}	
+	randomDurationPause(); // this additional pause after finishing reads ensured race condition always occurs
 	printf("W%d finished\n", threadID); 
 	return NULL;
 }
@@ -96,20 +97,28 @@ void * reader(void * id) {
 	// Announce that the thread has started executing
 	printf("R%d entered\n", threadID); 
 	
+	// If the writer thread is still active
 	if(stillWriting == true){
+		// Retrieve the first value in the buffer
 		int index1 = buffer[0];
+		// Pause for a random duration to encourage race condition
 		randomDurationPause(); 
+		// Retrieve the second value in the buffer
 		int index2 = buffer[1];
+		// If both indexes in the buffer are equal
 		if(index1 == index2){ 
-			printf("Consistent Buffer of index: %d\n", index1);
+			// The buffer has consistent indexes and we print out this value
+			printf("Consistent Buffer containing index: %d\n", index1);
 		}
 		else {
+			// the buffer has two different values, therefore it is inconsistent
 			printf("Inconsistent Buffer with indexes:\n");
+			// Prints out the two indexes to show inconsistency
 			printf("Index 1: %d\n", index1);
 			printf("Index 2: %d\n", index2);
 		}
 	}
-
+	randomDurationPause(); 
 	printf("R%d finished\n", threadID); 
 	return NULL;
 }
