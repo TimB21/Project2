@@ -113,39 +113,49 @@ void * reader(void * id) {
 	printf("R%d entered\n", threadID); 
 	// Checks if there are still active writing threads
 	if(stillWriting){
-		sem_wait(&readerS); // Acquire the reader semaphore to indicate that the reader has priority 
-		readCount++; // Increment the number of active readers
+		// Acquire the reader semaphore to indicate that the reader has priority 
+		sem_wait(&readerS);
+		// Increment the number of active readers
+		readCount++;
 		// If this is the first reader, prevent the writer from accessing the resources
 		if(readCount == 1){
 			sem_wait(&writerS);
 		}
-    	sem_post(&readerS); 
+		sem_post(&readerS); 
 
 		// READUNIT() - Reading the values from the buffer
-		int index1 = buffer[0]; // Read the first value from the index buffer
-		randomDurationPause(); // Use a reandom pause to simualte delay
-		int index2 = buffer[1]; // Read the second value from the index buffer
+		// Read the first value from the index buffer
+		int index1 = buffer[0];
+		// Use a reandom pause to simualte delay
+		randomDurationPause();
+		// Read the second value from the index buffer
+		int index2 = buffer[1];
 		// Check for consistency between indexes
 		if(index1 == index2){ 
 			// Prints out consistent index
 			printf("Consistent Buffer of index: %d\n", index1);
 		}
 		else {
-			// If the indexes are not the same, print out inconsistent indexesd
+			// If the indexes are not the same, print out inconsistent indexes
 			printf("Inconsistent Buffer with indexes:\n");
 			printf("Index 1: %d\n", index1);
 			printf("Index 2: %d\n", index2);
 		}
-		randomDurationPause();
-		
-		sem_wait(&readerS); // Acuires the reader seamphore to indicate that the reader wants to enter the critical section
-		readCount--; // Decrement the number of active readers
+		randomDurationPause(); 
+
+		// Acquires the reader seamphore to indicate that the reader wants to enter the critical section
+		sem_wait(&readerS);
+		// Decrement the number of active readers
+		readCount--;
 		// If there are no more active readers, signal that writers can proceed
 		if(readCount == 0){
-			sem_post(&writerS); // Signal to writer to indicate that they can proceed
+			// Signal to writer to indicate that they can proceed
+			sem_post(&writerS);
 		}
-		sem_post(&readerS); // Reader exits the critical section
+		// Reader exits the critical section
+		sem_post(&readerS);
 	}
+
 
 	printf("R%d finished\n", threadID); 
 	return NULL;
@@ -159,8 +169,10 @@ void * reader(void * id) {
 int main() {
 	printf("Readers/Writers Program Launched\n");
 
-	sem_init(&readerS, 0, 1); // Initialize reader semaphore with an initial value of 1
-	sem_init(&writerS, 0, 1); // Initialize writer semaphore with an initial value of 1
+	// Initialize reader semaphore with an initial value of 1
+	sem_init(&readerS, 0, 1); 
+	// Initialize writer semaphore with an initial value of 1
+	sem_init(&writerS, 0, 1); 
 	
 	pthread_t readerThread[NUM_READERS], writerThread[NUM_WRITERS];
 	int id;

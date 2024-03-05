@@ -195,19 +195,21 @@ void * consumer(void * arg) {
 	int i;
 	for(i = 0; i < CONSUMPTION_LIMIT; i++) { // Consume a set number of values
 		pthread_mutex_lock(&mutex); // Consumer locks mutex before trying to enter critical section
-        // If insertAt and removeAt are the same index, the buffer is full
+		// If insertAt and removeAt are the same index, the buffer is full
 		// If the buffer is full and waits for it to become empty
 		while (insertAt == removeAt) {
-            pthread_cond_wait(&filled, &mutex);
-        }
+			pthread_cond_wait(&filled, &mutex);
+		}
 		// Start Critical Section 
-		int consumedResult = take(); // Take value to be consumed from the buffer
-		pthread_cond_signal(&empty); // Signal that the buffer is empty
-        pthread_mutex_unlock(&mutex); // Release the mutex to allow for other threads to proceed 
-		
-		// End Critical Section: consume() appears here to assure sequential ordering of output
-        consume(threadID, consumedResult);
+		// Take value to be consumed from the buffer
+		int consumedResult = take(); 
+		// Signal that the buffer is empty
+		pthread_cond_signal(&empty); 
+		// Release the mutex to allow for other threads to proceed 
+		pthread_mutex_unlock(&mutex); 
 
+		// End Critical Section: consume() appears here to assure sequential ordering of output
+		consume(threadID, consumedResult); 
 	}	
 	// Announce completion of thread 
 	printf("C%d finished\n", threadID); 

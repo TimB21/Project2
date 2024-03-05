@@ -70,12 +70,18 @@ void * writer(void * id) {
 	// Announce that the thread has started executing
 	printf("W%d entered\n", threadID); 
 	int i;
-	for(i = 0; i <= WRITE_ACTIONS; i++) { // Consume a set number of values
-			buffer[0] = threadID; // set the first value of the buffer to the thread id
-			randomDurationPause(); // perform a random duration pause to encourage race condition
-			buffer[1] = threadID;  // set the second value of the buffer to the thread id
-	}	
-	randomDurationPause(); // this additional pause after finishing reads ensured race condition always occurs
+	// Perform the number of writes defined by the number of time each process executes it critical section
+	for(i = 0; i < WRITE_ACTIONS; i++) {
+			// Set the first value of the buffer to the thread ID
+			buffer[0] = threadID; 
+			// Perform a random duration pause between buffer updatesto encourage a race condition
+			randomDurationPause(); 
+			// Set the second value of the buffer to the thread ID
+			buffer[1] = threadID;
+	} 
+	// Wait occurs after write finishes 
+	// Encourages race condition
+	randomDurationPause(); 
 	printf("W%d finished\n", threadID); 
 	return NULL;
 }
@@ -118,6 +124,8 @@ void * reader(void * id) {
 			printf("Index 2: %d\n", index2);
 		}
 	}
+	// Wait occurs after read read finishes
+	// Encourages race condition
 	randomDurationPause(); 
 	printf("R%d finished\n", threadID); 
 	return NULL;

@@ -55,9 +55,12 @@ int buffer[2];
  */
 bool stillWriting = true;
 
-pthread_mutex_t writerMutex; // Mutex to ensure mutual exlusion among writer threads
-pthread_mutex_t readerMutex; // Mutex to ensure mutual exclusion among reader threads
-int readCount = 0; // Counter to keep track of active reader threads
+// Mutex to ensure mutual exlusion among writer threads
+pthread_mutex_t writerMutex; 
+// Mutex to ensure mutual exclusion among reader threads
+pthread_mutex_t readerMutex; 
+// Counter to keep track of active reader threads
+int readCount = 0; 
 
 /**
  * Each writer thread should execute its critical section WRITE_ACTIONS
@@ -74,20 +77,20 @@ void * writer(void * id) {
 	// Announce that the thread has started executing
 	printf("W%d entered\n", threadID); 
 	int i;
+	// Loop for the number of write actions
 	for(i = 0; i < WRITE_ACTIONS; i++) { 
-			if(stillWriting == true){
-				pthread_mutex_lock(&writerMutex); // Decrement empty slots count
-
-				// WRITEUNIT()
-				buffer[0] = threadID;
-				randomDurationPause();
-				buffer[1] = threadID; 
-				
-				randomDurationPause();
-
-				pthread_mutex_unlock(&writerMutex); // Exit critical section
-			}
-	}	
+		if(stillWriting == true){
+			// Lock the writer mutex to ensure mutual exclusion
+			pthread_mutex_lock(&writerMutex); 
+			// WRITEUNIT() - Write the thread ID to both indices of the buffer
+			buffer[0] = threadID; // Write the thread ID to the first index of the buffer
+			randomDurationPause(); // Introduce a random pause
+			buffer[1] = threadID; // Write the thread ID to the second index of the buffer
+			randomDurationPause(); // Introduce another random pause
+			// Release the writer mutex
+			pthread_mutex_unlock(&writerMutex); 
+		}
+	}   
 	printf("W%d finished\n", threadID); 
 	return NULL;
 }
@@ -110,18 +113,23 @@ void * reader(void * id) {
 	printf("R%d entered\n", threadID); 
 	// If there is an active writer thread
 	if(stillWriting){
-		pthread_mutex_lock(&readerMutex); // Lock the reader mutex to ensure mutual exclusion
-		readCount++; // Increment the active reader thread count
+		// Lock the reader mutex to ensure mutual exclusion
+		pthread_mutex_lock(&readerMutex); 
+		// Increment the active reader thread count
+		readCount++; 
 		// If there is only one active reader, place a lock on the writer mutex to ensure that readers are given priority
 		if(readCount == 1){
 			pthread_mutex_lock(&writerMutex);
 		}
-    	pthread_mutex_unlock(&readerMutex); /// Release the reader mutex
-
+		// Release the reader mutex
+		pthread_mutex_unlock(&readerMutex); 
 		// READUNIT() - reads the values from the buffer
-		int index1 = buffer[0]; // Read the value from the first index of the buffer
-		randomDurationPause(); // Simulate a random pause
-		int index2 = buffer[1]; // Read the value from the second index of the buffer
+		// Read the value from the first index of the buffer
+		int index1 = buffer[0]; 
+		// Simulate a random pause
+		randomDurationPause(); 
+		// Read the value from the second index of the buffer
+		int index2 = buffer[1]; 
 		// Checks for consistency which occurs when both buffer indexes are equal
 		if(index1 == index2){ 
 			// Prints out the value which is contained by both positions of the buffer
@@ -133,15 +141,18 @@ void * reader(void * id) {
 			printf("Index 1: %d\n", index1);
 			printf("Index 2: %d\n", index2);
 		}
-		randomDurationPause(); // Pause to ensure that processes are interleaved correctly
-
-		pthread_mutex_lock(&readerMutex); // Lock the reader mutex before updating the read count
-		readCount--; // Decrement the read count
+		// Pause to ensure that processes are interleaved correctly
+		randomDurationPause(); 
+		// Lock the reader mutex before updating the read count
+		pthread_mutex_lock(&readerMutex); 
+		// Decrement the read count
+		readCount--; 
 		// If there are no reader threads, unlock the writer mutex
 		if(readCount == 0){ 
 			pthread_mutex_unlock(&writerMutex);
 		}
-		pthread_mutex_unlock(&readerMutex); // Release the reader mutex
+		// Release the reader mutex
+		pthread_mutex_unlock(&readerMutex); 
 	}
 
 	printf("R%d finished\n", threadID); 
@@ -156,12 +167,12 @@ void * reader(void * id) {
 int main() {
 	printf("Readers/Writers Program Launched\n");
 	
-	// initialize reader mutex and return -1 if unable to do so
+	// Initialize reader mutex and return -1 if unable to do so
 	if(pthread_mutex_init(&readerMutex, NULL)){
 		printf("Unable to initilaize a mutex\n");
 		return -1;
 	}
-	// initialize writer mutex and return -1 if unable to do so
+	// Initialize writer mutex and return -1 if unable to do so
 	if(pthread_mutex_init(&writerMutex, NULL)){
 		printf("Unable to initilaize a conditional\n");
 		return -1;

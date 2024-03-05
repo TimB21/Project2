@@ -60,9 +60,12 @@ void randomDurationPause() {
  */
 int globalProductionCounter = 0;
 
-sem_t empty; // Semaphore used to track the empty slots in the buffer
-sem_t filled; // Semaphore used keep track of the number of filled slots in the buffer
-sem_t semaphore; // Semaphore used to ensure mutual exclusion
+// Semaphore used to track the empty slots in the buffer
+sem_t empty; 
+ // Semaphore used keep track of the number of filled slots in the buffer
+sem_t filled;
+// Semaphore used to ensure mutual exclusion
+sem_t semaphore; 
 
 /**
  * Because this is just a simple model for understanding
@@ -156,16 +159,24 @@ void * producer(void * arg) {
 	// Announce that the thread has started executing
 	printf("P%d entered\n", threadID); 
 	int i;
+	// Loop for the number of production actions
 	for(i = 0; i < PRODUCTION_LIMIT; i++) { // Produce a set number of values
-		sem_wait(&empty); // Decrement empty slots count
-    	sem_wait(&semaphore); // Used to indicate that the producer is enter critical section
+		// Decrement empty slots count
+		sem_wait(&empty); 
+		// Used to indicate that the producer is entering the critical section
+		sem_wait(&semaphore); 
 		// Start Critical Section: produce() must appear here to protect globalProductionCounter
-		int producedResult = produce(threadID); // Produce new value 
-		append(producedResult); // Add new value to buffer 
-		sem_post(&semaphore); // Exit critical section
-    	sem_post(&filled); // Increment filled slots count
+		// Produce new value 
+		int producedResult = produce(threadID); 
+		// Add new value to buffer 
+		append(producedResult); 
+		// Exit critical section
+		sem_post(&semaphore); 
+		// Increment filled slots count
+		sem_post(&filled); 
 		// End Critical Section
 	}
+
 	// Announce completion of thread 
 	printf("P%d finished\n", threadID); 
 	return NULL; // No value is returned by thread
@@ -187,17 +198,24 @@ void * consumer(void * arg) {
 	// Announce that the thread has started executing
 	printf("C%d entered\n", threadID); 
 	int i;
+	// Loop for the number of consumption actions
 	for(i = 0; i < CONSUMPTION_LIMIT; i++) { // Consume a set number of values
-		sem_wait(&filled); // Decrement filled slots count
-    	sem_wait(&semaphore); // Used to indicate that the consumer is entering critical section
+		// Decrement filled slots count
+		sem_wait(&filled); 
+		// Used to indicate that the consumer is entering the critical section
+		sem_wait(&semaphore); 
 		// Start Critical Section
-		int consumedResult = take(); // Take from buffer
-		sem_post(&semaphore); // Signifies that the consumer has exited it's critical section
-    	sem_post(&empty); // Increment empty slots count
-		consume(threadID, consumedResult); // Consume result 
+		// Take from buffer
+		int consumedResult = take(); 
+		// Signifies that the consumer has exited its critical section
+		sem_post(&semaphore); 
+		// Increment empty slots count
+		sem_post(&empty); 
+		// Consume result 
+		consume(threadID, consumedResult); 
 		// End Critical Section: consume() appears here to assure sequential ordering of output
+	}
 
-	}	
 	// Announce completion of thread 
 	printf("C%d finished\n", threadID); 
 	return NULL; // No value is returned by thread
@@ -213,9 +231,12 @@ int main() {
 	printf("Producer/Consumer Program Launched\n");
 
 	// Initialize semaphores
-    sem_init(&empty, 0, BUFFER_SIZE); // Set empty slots count to buffer size
-    sem_init(&filled, 0, 0); // Set filled slots count to 0
-    sem_init(&semaphore, 0, 1); // Initialize mutex to 1
+	// Set empty slots count to buffer size
+    sem_init(&empty, 0, BUFFER_SIZE); 
+	// Set filled slots count to 0
+    sem_init(&filled, 0, 0); 
+	// Initialize mutex to 1
+    sem_init(&semaphore, 0, 1); 
 
 	pthread_t producerThread[NUM_PRODUCERS], consumerThread[NUM_CONSUMERS];
 	int id;
