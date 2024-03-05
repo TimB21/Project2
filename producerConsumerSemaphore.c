@@ -202,14 +202,16 @@ void * consumer(void * arg) {
 	for(i = 0; i < CONSUMPTION_LIMIT; i++) { // Consume a set number of values
 		// Decrement filled slots count
 		sem_wait(&filled); 
+		// Decrement the semaphore value
 		// Used to indicate that the consumer is entering the critical section
 		sem_wait(&semaphore); 
 		// Start Critical Section
 		// Take from buffer
 		int consumedResult = take(); 
+		// Decrement the semaphore value 
 		// Signifies that the consumer has exited its critical section
 		sem_post(&semaphore); 
-		// Increment empty slots count
+		// Increment empty slots count to indicate that the slot being taken by the consumer thread is not empty
 		sem_post(&empty); 
 		// Consume result 
 		consume(threadID, consumedResult); 

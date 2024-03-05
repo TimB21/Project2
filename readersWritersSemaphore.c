@@ -58,7 +58,7 @@ bool stillWriting = true;
 
 // Initializes writer and reader semaphores
 sem_t writerS; // Semaphore used to control access to writing from the buffer
-sem_t readerS; // Semaphore used to control access to reading from the buffer
+sem_t readerS; // Semaphore used to control access to reading from the buffer 
 int readCount = 0; // Counter to keep track of the number of active reader threads
 
 /**
@@ -80,7 +80,7 @@ void * writer(void * id) {
 	for(i = 0; i < WRITE_ACTIONS; i++) { // Consume a set number of values 
 			// Check if there is a thread still writing
 			if(stillWriting == true){
-				sem_wait(&writerS); // Acquire the writer semaphore to indicate that the writer wants to enter the critical section
+				sem_wait(&writerS); // Increment the writer semaphore to indicate that the writer wants to enter the critical section
 
 				// WRITEUNIT() - Writing the thread to the buffer
 				buffer[0] = threadID; // Write the id of the thread to the buffer
@@ -88,7 +88,7 @@ void * writer(void * id) {
 				buffer[1] = threadID; // write the id of the thread to the buffer
 				randomDurationPause(); // Simulates write delay
 
-				sem_post(&writerS); // Release the writer semaphore to indicate that it has exited the critical section
+				sem_post(&writerS); // Decrement the writer semaphore to indicate that it has exited the critical section
 			}
 	}	
 	printf("W%d finished\n", threadID); 
@@ -113,7 +113,7 @@ void * reader(void * id) {
 	printf("R%d entered\n", threadID); 
 	// Checks if there are still active writing threads
 	if(stillWriting){
-		// Acquire the reader semaphore to indicate that the reader has priority 
+		// Increment the reader semaphore to indicate that the reader has priority 
 		sem_wait(&readerS);
 		// Increment the number of active readers
 		readCount++;
@@ -143,16 +143,16 @@ void * reader(void * id) {
 		}
 		randomDurationPause(); 
 
-		// Acquires the reader seamphore to indicate that the reader wants to enter the critical section
+		// Increment the reader seamphore to indicate that the reader wants to enter the critical section
 		sem_wait(&readerS);
 		// Decrement the number of active readers
 		readCount--;
 		// If there are no more active readers, signal that writers can proceed
 		if(readCount == 0){
-			// Signal to writer to indicate that they can proceed
+			// Decrement the writer semaphore to signal to writer that it can proceed
 			sem_post(&writerS);
 		}
-		// Reader exits the critical section
+		// Decrement the reader semaphore to indicate that the reader exits the critical section
 		sem_post(&readerS);
 	}
 

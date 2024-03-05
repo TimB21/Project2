@@ -55,7 +55,7 @@ int buffer[2];
  */
 bool stillWriting = true;
 
-// Mutex to ensure mutual exlusion among writer threads
+// Mutex to ensure mutual exclusion among writer threads
 pthread_mutex_t writerMutex; 
 // Mutex to ensure mutual exclusion among reader threads
 pthread_mutex_t readerMutex; 
@@ -174,7 +174,7 @@ int main() {
 	}
 	// Initialize writer mutex and return -1 if unable to do so
 	if(pthread_mutex_init(&writerMutex, NULL)){
-		printf("Unable to initilaize a conditional\n");
+		printf("Unable to initilaize a mutex\n");
 		return -1;
 	} 
 
