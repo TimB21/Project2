@@ -163,6 +163,7 @@ void * producer(void * arg) {
 	for(i = 0; i < PRODUCTION_LIMIT; i++) { // Produce a set number of values
 		// Decrement empty slots count
 		sem_wait(&empty); 
+		// Decrements the value of semaphore 
 		// Used to indicate that the producer is entering the critical section
 		sem_wait(&semaphore); 
 		// Start Critical Section: produce() must appear here to protect globalProductionCounter
@@ -170,7 +171,7 @@ void * producer(void * arg) {
 		int producedResult = produce(threadID); 
 		// Add new value to buffer 
 		append(producedResult); 
-		// Exit critical section
+		// Indicate that the semaphore is exiting critical section by incrementing the semaphore
 		sem_post(&semaphore); 
 		// Increment filled slots count
 		sem_post(&filled); 
@@ -208,7 +209,7 @@ void * consumer(void * arg) {
 		// Start Critical Section
 		// Take from buffer
 		int consumedResult = take(); 
-		// Decrement the semaphore value 
+		// Increment the semaphore value 
 		// Signifies that the consumer has exited its critical section
 		sem_post(&semaphore); 
 		// Increment empty slots count to indicate that the slot being taken by the consumer thread is not empty

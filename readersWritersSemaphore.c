@@ -80,15 +80,21 @@ void * writer(void * id) {
 	for(i = 0; i < WRITE_ACTIONS; i++) { // Consume a set number of values 
 			// Check if there is a thread still writing
 			if(stillWriting == true){
-				sem_wait(&writerS); // Increment the writer semaphore to indicate that the writer wants to enter the critical section
+				// Decrement the writer semaphore to indicate that the writer wants to enter the critical section
+				sem_wait(&writerS); 
 
 				// WRITEUNIT() - Writing the thread to the buffer
-				buffer[0] = threadID; // Write the id of the thread to the buffer
-				randomDurationPause(); // Simulates write delay
-				buffer[1] = threadID; // write the id of the thread to the buffer
-				randomDurationPause(); // Simulates write delay
+				// Write the id of the thread to the buffer
+				buffer[0] = threadID; 
+				// Simulates write delay
+				randomDurationPause(); 
+				// write the id of the thread to the buffer
+				buffer[1] = threadID; 
+				// Simulates write delay
+				randomDurationPause(); 
 
-				sem_post(&writerS); // Decrement the writer semaphore to indicate that it has exited the critical section
+				// Increment the writer semaphore to indicate that it has exited the critical section
+				sem_post(&writerS); 
 			}
 	}	
 	printf("W%d finished\n", threadID); 
@@ -113,7 +119,7 @@ void * reader(void * id) {
 	printf("R%d entered\n", threadID); 
 	// Checks if there are still active writing threads
 	if(stillWriting){
-		// Increment the reader semaphore to indicate that the reader has priority 
+		// Decrement the reader semaphore to indicate that the reader has priority 
 		sem_wait(&readerS);
 		// Increment the number of active readers
 		readCount++;
@@ -121,6 +127,7 @@ void * reader(void * id) {
 		if(readCount == 1){
 			sem_wait(&writerS);
 		}
+		// Increment the reader semaphore after making the writers wait because there is a reader thread currently executing
 		sem_post(&readerS); 
 
 		// READUNIT() - Reading the values from the buffer
@@ -141,9 +148,10 @@ void * reader(void * id) {
 			printf("Index 1: %d\n", index1);
 			printf("Index 2: %d\n", index2);
 		}
+		// Pause after read to ensure correctly functionality
 		randomDurationPause(); 
 
-		// Increment the reader seamphore to indicate that the reader wants to enter the critical section
+		// Decrement the reader seamphore to indicate that the reader wants to enter the critical section
 		sem_wait(&readerS);
 		// Decrement the number of active readers
 		readCount--;
@@ -152,7 +160,7 @@ void * reader(void * id) {
 			// Decrement the writer semaphore to signal to writer that it can proceed
 			sem_post(&writerS);
 		}
-		// Decrement the reader semaphore to indicate that the reader exits the critical section
+		// Increment the reader semaphore to indicate that the reader exits the critical section
 		sem_post(&readerS);
 	}
 
